@@ -1,6 +1,14 @@
 <img width="1177" height="237" alt="image" src="https://github.com/user-attachments/assets/3c6611d0-7248-45ba-9973-41bb519bba92" />
 
 # Threat Hunt Report: Unauthorized Data Transfer and Lateral Movement
+Azuki Import/Export Trading
+
+**SITUATION:**
+Competitor undercut our 6-year shipping contract by exactly 3%. Our supplier contracts and pricing data appeared on underground forums.
+
+**COMPANY:**
+Azuki Import/Export Trading Co. - 23 employees, shipping logistics Japan/SE Asia
+
 - [Scenario](https://www.notion.so/Memo-Azuki-Import-Export-Trading-2b0cf57416ff804f8d23ecac0d2b60e9)
 
 ## Platforms and Languages Leveraged
