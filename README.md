@@ -291,66 +291,47 @@ DeviceFileEvents
 
 ## Chronological Event Timeline 
 
-Incident Timeline: Tor Browser Usage
-Date: March 16, 2026
-Device Name: threat-hunt-lab
-Account: myvmwindows
+- Incident Timeline: Data exfiltration on file server
+- Date: November 22, 2026
+- Device Name: azuki-fileserver01
+- Account: fileadmin
+- Time in UTC
 
-## Phase 1: Tor Browser Download & Installation
-00:38:02 UTC | File Download
-- Event: A file named tor-browser-windows-x86_64-portable-15.0.7.exe was downloaded or moved into the user's Downloads directory.
-- Path: C:\Users\myvmWindows\Downloads\tor-browser-windows-x86_64-portable-15.0.7.exe
+## Phase 1: Initial Access & Discovery
+  - 12:11 AM – 12:19 AM: The attacker successfully logs into the file server using the compromised fileadmin administrator account via a RemoteInteractive session.
+  - 12:40 AM: The attacker begins system and user discovery using native Windows utilities:
+    - whoami.exe: Executed to check current user privileges.
+    - net.exe user: Executed to list local users.
+    - net.exe localgroup administrators: Executed to identify members of the local administrators group.
+    - net.exe share: Executed to enumerate local network shares.
+    - 12:42 AM: Network and remote discovery continues:
+    - net.exe view \10.1.0.188: Used to enumerate shares on a remote system.
+    - ipconfig /all: Executed to gather detailed network configuration and target information.
 
-00:46:04 UTC | Installer Execution (Evasion Attempt)
-Event: The Tor Browser portable installer was executed from the Downloads folder. The user appended the /S command-line switch to run the installer silently, preventing installation prompts from appearing on the screen.
-SHA256: 958626901dbe17fc003ed671b61b3656375e6f0bc06c9dff60bd2f80d4ace21b
+## Phase 2: Staging & Tooling
+  - 12:55 AM: The attacker prepares a staging directory at C:\Windows\Logs\CBS and uses attrib.exe +h +s to hide it from standard view and evade discovery.
+  - 12:56 AM – 1:02 AM: certutil.exe is used multiple times to download external tools and scripts, specifically retrieving ex.ps1 from http://78.141.196.6:7331/.
+  - 1:07 AM: The attacker uses xcopy.exe to move sensitive data from network shares into the hidden staging directory, creating the file IT-Admin-Passwords.csv.
 
-00:46:21 UTC - 00:46:32 UTC | Tor Components & Shortcut Creation
-Event: The silent installation extracted multiple Tor-related files to a new folder on the Desktop (C:\Users\myvmWindows\Desktop\Tor Browser\). Core files created included tor.exe and various license text files (tor.txt, Torbutton.txt, Tor-Launcher.txt).
-Event: A shortcut file named Tor Browser.lnk was created on the user's Desktop for quick access.
+## Phase 3: Persistence & Credential Access
+  - 2:03 AM: A credential dumping tool is introduced to the staging directory and renamed to pd.exe (masquerading to evade detection).
+  - 2:10 AM: Persistence is established by adding a registry value named FileShareSync to the HKLM autostart keys using reg.exe, pointing to a beacon script named svchost.ps1.
+  - 2:24 AM: The attacker executes the renamed tool pd.exe (ProcDump) to create a full memory dump of the lsass.exe process (PID 876) for credential extraction.
 
-## Phase 2: Browser Execution & Local Configuration
-00:47:47 UTC - 00:47:51 UTC | Tor Browser Launch
-Event: The user launched the Tor Browser. This initiated multiple instances of firefox.exe (which is the modified core engine for the Tor Browser) from the C:\Users\myvmWindows\Desktop\Tor Browser\Browser\ directory.
-
-00:47:52 UTC | Tor Daemon Started
-- Event: The primary tor.exe process was spawned with extensive command-line arguments to establish the local Tor proxy. It bound the Control Port to 127.0.0.1:9151 and the SOCKS proxy to 127.0.0.1:9150.
-- Path: C:\Users\myvmWindows\Desktop\Tor Browser\Browser\TorBrowser\Tor\tor.exe
-
-## Phase 3: Network Connectivity & Active Browsing
-00:48:21 UTC | Local Proxy Connection
-Event: The firefox.exe browser process successfully made a local network connection to 127.0.0.1 on port 9150 to route its web traffic through the local Tor SOCKS proxy.
-
-00:48:23 UTC - 00:48:28 UTC | Tor Network Circuits Established
-Event: The tor.exe daemon successfully made outbound network connections to known remote Tor entry nodes to establish circuits.
-Connections: * 23.129.64.147 over port 443
-213.164.193.245 over port 9001
-192.42.116.51 over port 443
-
-00:48:46 UTC - 00:54:23 UTC | Active Browsing Session
-Event: Multiple child processes of firefox.exe were continually created. These correspond to the user opening new tabs, utility workers, and interacting with websites within the Tor Browser.
-
-00:59:23 UTC | Additional Tor Network Connection
-Event: tor.exe established another successful outbound connection to 51.15.206.7 over port 443, likely rotating circuits or fetching additional consensus data.
-
-## Phase 4: Post-Browsing Artifact Creation
-02:28:55 UTC | Suspicious File Creation
-Event: A new text file named tor-shopping-list.txt was created in the user's Documents folder.
-Path: C:\Users\myvmWindows\Documents\tor-shopping-list.txt
-
-02:28:56 UTC | Recent Files Update
-Event: A Windows shortcut artifact (tor-shopping-list.lnk) was generated in the AppData\Roaming\Microsoft\Windows\Recent\ directory, confirming the user actively interacted with and opened the newly created shopping list document following their Tor browsing session.
+## Phase 4: Exfiltration & Anti-Forensics
+  - 2:25 AM: The attacker exfiltrates the collected data. curl.exe is used to upload credentials.tar.gz and the lsass.dmp file to the external cloud service file.io.
+  - 2:26 AM: In a final attempt to cover their tracks, the attacker deletes the ConsoleHost_history.txt file to remove the record of their interactive PowerShell commands.
 
 ---
 
 ## Summary
 
-On the evening of March 15, 2026 (local time), the user myvmwindows downloaded and performed a silent installation of the Tor Browser. After establishing a connection to the Tor network and engaging in an active browsing session, the user created a document titled tor-shopping-list.txt. The entire sequence suggests a deliberate attempt to browse anonymously and document findings or intended purchases.
+On November 22, 2025, an attacker utilized the compromised fileadmin account to perform a remote interactive logon to azuki-fileserver01. Following initial discovery via native utilities like whoami, net share, and ipconfig , the actor established a hidden staging area at C:\Windows\Logs\CBS using the attrib command to evade detection. The attacker then used certutil.exe to download a malicious payload (ex.ps1) and xcopy.exe to aggregate sensitive data, including IT-Admin-Passwords.csv, into the hidden directory. To ensure long-term access, persistence was configured via an HKLM registry autostart key named FileShareSync , while credentials were harvested by using a renamed ProcDump tool (pd.exe) to dump the memory of the lsass.exe process. Finally, the staged data was compressed and exfiltrated to the external service file.io using curl.exe , after which the attacker deleted the ConsoleHost_history.txt file to erase their command-line trail.
 
 ---
 
-## Response Taken
+## Recommended Response Plan
 
-TOR usage was confirmed on the endpoint `threat-hunt-lab` by the user `myvmwindows`. The device was isolated and the user's direct manager was notified.
+Immediately isolate the infected host and reset credentials for the fileadmin and kenji.sato accounts to terminate active sessions and prevent lateral movement. Conduct a forensic sweep to delete the malicious staging directory at C:\Windows\Logs\CBS, remove the FileShareSync registry persistence key, and block all connections to unknown endpoints. Block the abuse of native tools like certutil.exe and curl.exe for unauthorized web transfers to file-sharing sites.
 
 ---
